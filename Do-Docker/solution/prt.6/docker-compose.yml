@@ -1,0 +1,18 @@
+services:
+#only lower case
+  theserver:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./nginxes/nginx-server/nginx.conf:/etc/nginx/nginx.conf
+    container_name: theServer
+
+  mysroxy:
+    image: nginx
+    ports:
+      - 80:8080
+    volumes:
+      - ./nginxes/nginx-proxy/nginx.conf:/etc/nginx/nginx.conf
+    container_name: child_6.1_proxy
+    # command: -g "daemon off;"

@@ -1,0 +1,147 @@
+# list of stages of pipeline (order matters)
+stages:
+  - pre-build
+  - build
+  - pos-build
+  - pre-deploy
+  - deploy
+
+build-job-cat:
+  stage: build
+  script:
+    - echo "Building the cat application..."
+    - cd src/C3_project_files/cat/
+    - make all 
+    - cd ../..
+    - cd ..
+  artifacts:
+    paths:
+      - src/C3_project_files/cat/s21_cat
+    expire_in: 30 days
+
+build-job-grep:
+  stage: build
+  script:
+    - echo "Building the grep application..."
+    - cd src/C3_project_files/grep/
+    - make all 
+    - cd ../..
+    - cd ..
+  artifacts:
+    paths:
+      - src/C3_project_files/grep/s21_grep
+    expire_in: 30 days
+
+integration-test-cat-job:
+  stage: pos-build
+  script:
+    - cd src/C3_project_files/cat
+    - chmod 755 s21_cat_tests_LINUX.sh
+    - ./s21_cat_tests_LINUX.sh
+  needs:
+    - code-style-test-job
+    - build-job-cat
+
+integration-test-grep-job:
+  stage: pos-build
+  script:
+    - cd src/C3_project_files/grep
+    - chmod 755 s21_grep_tests_LINUX.sh
+    - ./s21_grep_tests_LINUX.sh
+  needs:
+    - code-style-test-job
+    - build-job-grep 
+
+pre-deploy-job:
+  stage: pre-deploy
+  script:
+    - echo "The project is ready for deployment. The process meant to be started manually."
+  needs:
+    - code-style-test-job
+    - build-job-cat
+    - build-job-grep
+    - integration-test-cat-job
+    - integration-test-grep-job
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploying the application..."
+    - cd src
+    - mkdir -p artifacts
+    - cp C3_project_files/cat/s21_cat artifacts/s21_cat
+    - cp C3_project_files/grep/s21_grep artifacts/s21_grep
+    - ./deployment.sh
+  needs:
+    - code-style-test-job
+    - build-job-cat
+    - build-job-grep
+    - integration-test-cat-job
+    - integration-test-grep-job
+  when: manual
+
+
+after_script:
+  - ./src/bot_control.sh
+
+
+code-style-test-job:
+  stage: pre-build
+  script:
+    - echo "Checking code style cat..."
+    - cd src/C3_project_files/cat
+    - clang-format --style=Google -n *.c *.h 
+    - clang-format --style=Google -i *.c *.h 
+    - if ! git diff --quiet; then
+    -   echo "Code style check failed for cat"
+    -   exit 1
+    - fi
+    - cd ..
+    - echo "Checking code style grep..."
+    - cd grep
+    - clang-format --style=Google -n *.c *.h 
+    - clang-format --style=Google -i *.c *.h
+    - if ! git diff --quiet; then
+    -     echo "Code style check failed for grep"
+    -     exit 1
+    - fi
+    - cd ..
+    - echo "Checking code style common..."
+    - cd common
+    - clang-format --style=Google -n *.c *.h 
+    - clang-format --style=Google -i *.c *.h
+    - if ! git diff --quiet; then
+    -     echo "Code style check failed for common"
+    -     exit 1
+    - fi
+
+# easier method for style-test
+# code-style-job:
+#   stage: pre-build-extra
+#   script:
+#     - echo "Checking code style cat..."
+#     - cd src/C3_project_files/cat
+#     -  clang-format --style=Google -i *.c *.h 
+#     - if ! git diff
+#     - then
+#     -   exit 1
+#     - fi
+#     - cd ..
+#     - echo "Checking code style grep..."
+#     - cd grep
+#     - clang-format --style=Google -i *.c *.h
+#     - if ! git diff; then
+#     -     exit 1
+#     - fi
+#     - cd ..
+#     - echo "Checking code style common..."
+#     - cd common
+#     - clang-format --style=Google -i *.c *.h
+#     - if ! git diff; then
+#     -     exit 1
+#     - fi
+
+  
+
+
+
