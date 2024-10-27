@@ -2,7 +2,7 @@
 # Active commands 0-
 VAR_1=$2
 VAR_URL="<gitlab_repo_link>"
-VAR_TOKEN="<gitlab_project_tocken"
+VAR_TOKEN="<gitlab_registration_tocken"
 
 if [ $1 -eq 0 ]
 then
